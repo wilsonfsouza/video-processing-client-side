@@ -47,7 +47,4 @@ onmessage = async ({ data }) => {
       self.postMessage(message)
     }
   })
-  self.postMessage({
-    status: 'done'
-  })
 }
