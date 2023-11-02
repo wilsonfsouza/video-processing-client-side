@@ -1,3 +1,4 @@
+import WebMWriter from './../deps/webm-writer2.js'
 import CanvasRenderer from "./canvasRenderer.js"
 import MP4Demuxer from "./mp4Demuxer.js"
 import VideoProcessor from "./videoProcessor.js"
@@ -31,9 +32,19 @@ const encoderConfig = {
   // avc: { format: 'annexb' }
 }
 
+const webmWriterConfig = {
+  ...qvgaConstraints,
+  codec: 'VP9',
+  width: encoderConfig.width,
+  height: encoderConfig.height,
+  bitrate: encoderConfig.bitrate,
+}
+
+const webMWriter = new WebMWriter(webmWriterConfig)
 const mp4Demuxer = new MP4Demuxer()
 const videoProcessor = new VideoProcessor({
-  mp4Demuxer
+  mp4Demuxer,
+  webMWriter,
 })
 
 onmessage = async ({ data }) => {
