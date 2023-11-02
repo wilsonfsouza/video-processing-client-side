@@ -105,17 +105,56 @@ export default class VideoProcessor {
     }
   }
 
+  renderDecodedFramesAndGetEncodedChunks(renderFrame) {
+    let _decoder;
+
+    return new TransformStream({
+      /**
+       * 
+       * @param {TransformStreamDefaultController} controller 
+       */
+      start: (controller) => {
+        _decoder =  new VideoDecoder({
+          output(frame) {
+            renderFrame(frame)
+          },
+          error(e) {
+            console.error('Error at rendering frames', e)
+            controller.error(e)
+          }
+        })
+      },
+      /**
+       * 
+       * @param {EncodedVideoChunk} encodedChunk
+       * @param {TransformStreamDefaultController} controller 
+       */
+      async transform(encodedChunk, controller) {
+        if (encodedChunk.type === 'config') {
+          await _decoder.configure(encodedChunk.config)
+          return
+        }
+        _decoder.decode(encodedChunk)
+
+        // need the encoded version to use webM
+        controller.enqueue(encodedChunk)
+      }
+    })
+
+  }
+
   async start({ file, encoderConfig, renderFrame, sendMessage }) {
     const stream = file.stream()
     const fileName = file.name.split('/').pop().replace('.mp4', '')
 
     await this.mp4Decoder(stream)
       .pipeThrough(this.encode144p(encoderConfig))
-      .pipeTo(new WritableStream({
-        write(frame) {
-          renderFrame(frame)
-        }
-      }))
+      .pipeThrough(this.renderDecodedFramesAndGetEncodedChunks(renderFrame))
+      // .pipeTo(new WritableStream({
+      //   write(frame) {
+      //     renderFrame(frame)
+      //   }
+      // }))
 
     sendMessage({
       status: 'done'
